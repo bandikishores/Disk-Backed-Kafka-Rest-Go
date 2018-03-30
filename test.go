@@ -1,5 +1,16 @@
 package main
 
+
+/*
+a) HealthCheck
+	curl -X GET "localhost:9001/health"
+b) Sleep API
+	curl -X GET "localhost:9001/sleep"
+c) Post to Kafka
+	curl -X GET "localhost:9001/postKafka"
+
+*/
+
 import (
 	//"encoding/json"
 	// "bufio"
