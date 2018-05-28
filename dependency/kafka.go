@@ -2,7 +2,7 @@ package dependency
 
 import (
 	"github.com/Shopify/sarama"
-	"io/ioutil"
+	//"io/ioutil"
 	"log"
 )
 
@@ -32,7 +32,7 @@ func handleRecoverableError(err error, str string) {
 }
 
 // SendMessage Given a topic string and en event send it to the client
-func sendMessage(topic string, data string) {
+/*func sendMessage(topic string, data string) {
 	// bData, _ := ioutil.ReadFile("/home/ubuntu/testgo/mytemp.json")
 	bData, _ := ioutil.ReadFile("/Users/bandi.kishore/test/Test.json")
 	// bData, _ := json.Marshal(mydata)
@@ -42,7 +42,7 @@ func sendMessage(topic string, data string) {
 		Value: sarama.StringEncoder(bData),
 	}
 	writeToKafka(msg, producer)
-}
+}*/
 
 func writeToKafka(msg *sarama.ProducerMessage, producer sarama.AsyncProducer) error {
 	select {

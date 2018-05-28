@@ -41,6 +41,7 @@ func main() {
 
 	// Kafka
 	dependency.InitKafka()
+	dependency.InitDiskQueue()
 
 	/*	for true {
 		fmt.Print("Enter text: ")
