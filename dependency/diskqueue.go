@@ -14,6 +14,8 @@ const time_in_ms = 1000
 
 const dirQueuePath = "/Users/bandi.kishore/test/diskqueue/"
 
+var firstTime = true
+
 func InitDiskQueue() {
 	var err error;
 	q, err = goque.OpenQueue(dirQueuePath)
@@ -29,28 +31,31 @@ func startDeQueue() {
 	for {
 		select {
 			case <-ticker.C:
-				if(q.Length() == 0) {
-					log.Print("No topic Found")
-				} else {
-					topic, err := q.Dequeue()
-		            if(err != nil) {
-			            log.Printf("%s Error occured while reading topic from file", err)
-		            }
+				for{
 					if(q.Length() == 0) {
-						log.Print("No Data Found for Topic %s", topic)
-						return
+						log.Print("No topic Found")
+						break
+					} else {
+						topic, err := q.Dequeue()
+			            if(err != nil) {
+				            log.Printf("%s Error occured while reading topic from file", err)
+			            }
+						if(q.Length() == 0) {
+							log.Print("No Data Found for Topic %s", topic)
+							return
+						}
+						
+			            data, err := q.Dequeue()
+			            if(err != nil) {
+				            log.Printf("%s Error occured while reading data from file", err)
+			            }
+			            if(topic != nil && data != nil) {
+				            sendToKafka(topic.ToString(), data.Value)
+			            } else {
+				            	log.Print("Either topic or data read was nil")
+			            }
+						
 					}
-					
-		            data, err := q.Dequeue()
-		            if(err != nil) {
-			            log.Printf("%s Error occured while reading data from file", err)
-		            }
-		            if(topic != nil && data != nil) {
-			            sendToKafka(topic.ToString(), data.Value)
-		            } else {
-			            	log.Print("Either topic or data read was nil")
-		            }
-					
 				}
 		}
 	}
