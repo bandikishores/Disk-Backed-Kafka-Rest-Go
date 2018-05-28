@@ -31,32 +31,47 @@ func startDeQueue() {
 	for {
 		select {
 			case <-ticker.C:
-				for{
-					if(q.Length() == 0) {
-						log.Print("No topic Found")
-						break
-					} else {
-						topic, err := q.Dequeue()
-			            if(err != nil) {
-				            log.Printf("%s Error occured while reading topic from file", err)
-			            }
+				
+					lastReadCount := q.Length()
+					lastLoopCount := 0
+					for{
 						if(q.Length() == 0) {
-							log.Print("No Data Found for Topic %s", topic)
-							return
+							// log.Print("No topic Found")
+							break
+						} else {
+							if(lastReadCount == q.Length()) {
+								lastLoopCount++
+							}
+							// lastLoopCount it determines that the loop was continously looping for last 3 times with same number of messages.
+							// Maybe down stream is failing all the time, so pause for a while (as long as ticket time)
+							if(lastLoopCount >= 4) {
+								break;
+							}
+							
+							lastReadCount = q.Length()
+							
+							topic, err := q.Dequeue()
+				            if(err != nil) {
+					            log.Printf("%s Error occured while reading topic from file", err)
+				            }
+							if(q.Length() == 0) {
+								log.Print("No Data Found for Topic %s", topic)
+								return
+							}
+							
+				            data, err := q.Dequeue()
+				            if(err != nil) {
+					            log.Printf("%s Error occured while reading data from file", err)
+				            }
+				            if(topic != nil && data != nil) {
+					            sendToKafka(topic.ToString(), data.Value)
+				            } else {
+					            	log.Print("Either topic or data read was nil")
+				            }
+							
 						}
-						
-			            data, err := q.Dequeue()
-			            if(err != nil) {
-				            log.Printf("%s Error occured while reading data from file", err)
-			            }
-			            if(topic != nil && data != nil) {
-				            sendToKafka(topic.ToString(), data.Value)
-			            } else {
-				            	log.Print("Either topic or data read was nil")
-			            }
-						
 					}
-				}
+				
 		}
 	}
 }
@@ -67,6 +82,11 @@ func sendMessage(topic string, data string) {
 	bData, _ := ioutil.ReadFile("/Users/bandi.kishore/test/Test.json")
 	// bData, _ := json.Marshal(mydata)
 	// fmt.Print("Enter text: %s",bData)
+	sendByteMessage(topic, bData)
+}
+
+// SendMessage Given a topic string and en event send it to the client
+func sendByteMessage(topic string, bData []byte) {
 	q.EnqueueString(topic)
 	q.Enqueue(bData)
 }
