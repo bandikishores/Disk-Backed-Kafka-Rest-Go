@@ -2,7 +2,7 @@ package dependency
 
 import (
 	"encoding/json"
-	"fmt"
+	// "fmt"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -25,7 +25,7 @@ func AddRouter() *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/health", getHealthAPI).Methods("GET")
 	router.HandleFunc("/sleep", sleepAPI).Methods("GET")
-	router.HandleFunc("/postKafka", postKafkaAPI).Methods("GET")
+	router.HandleFunc("/postKafka", postKafkaAPI).Methods("POST")
 	return router
 }
 
@@ -45,7 +45,19 @@ func sleepAPI(w http.ResponseWriter, req *http.Request) {
 
 // sleepAPI Post Event to the server
 func postKafkaAPI(w http.ResponseWriter, req *http.Request) {
-	sendMessage("1233", fmt.Sprintf("%s", "test-kafka-go"))
-	log.Printf("Succesfully posted message to kafka ")
+	var event Event
+	if err1 := json.NewDecoder(req.Body).Decode(&event); err1 != nil {
+		handleRecoverableError(err1, "Error in Decoding")
+		json.NewEncoder(w).Encode(Response{StatusCode: 0, Error: err1.Error()})
+		return
+	}
+	// log.Printf("Data was : %+v", event)
+	bData, err := json.Marshal(event)
+    if err != nil {
+        log.Printf("Error Marshaling object : %s", event.Message)
+        return
+    }
+	sendByteMessage(bData)
+	log.Printf("Succesfully posted message to diskQueue ")
 	json.NewEncoder(w).Encode(&Response{StatusCode: 1, Message: "Message Successfully Received"})
 }

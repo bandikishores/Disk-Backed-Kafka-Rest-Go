@@ -2,10 +2,13 @@ package dependency
 
 import (
 	"github.com/beeker1121/goque"
-	"io/ioutil"
+	// "io/ioutil"
 	"log"
 	"time"
 	"github.com/Shopify/sarama"
+	"encoding/json"
+	//"gopkg.in/mgo.v2/bson"
+//	"encoding/base64"
 )
 
 var q *goque.Queue
@@ -31,7 +34,6 @@ func startDeQueue() {
 	for {
 		select {
 			case <-ticker.C:
-				
 					lastReadCount := q.Length()
 					lastLoopCount := 0
 					for{
@@ -50,25 +52,23 @@ func startDeQueue() {
 							
 							lastReadCount = q.Length()
 							
-							topic, err := q.Dequeue()
+							eventBinary, err := q.Dequeue()
 				            if(err != nil) {
 					            log.Printf("%s Error occured while reading topic from file", err)
+					            break;
 				            }
-							if(q.Length() == 0) {
-								log.Print("No Data Found for Topic %s", topic)
-								return
-							}
-							
-				            data, err := q.Dequeue()
-				            if(err != nil) {
-					            log.Printf("%s Error occured while reading data from file", err)
-				            }
-				            if(topic != nil && data != nil) {
-					            sendToKafka(topic.ToString(), data.Value)
-				            } else {
-					            	log.Print("Either topic or data read was nil")
-				            }
-							
+				            
+							var event Event
+							// var diskData DiskData
+						    err = json.Unmarshal(eventBinary.Value, &event)
+						    if err != nil {
+							    	log.Printf("%s Error occured while Unmarshaling diskData", err)
+							    	continue;
+						    }
+						    
+						    // log.Printf("Data unmarshalled was : %+v", event)
+				            
+							sendToKafka(event.Header.Name, eventBinary.Value)
 						}
 					}
 				
@@ -79,15 +79,35 @@ func startDeQueue() {
 // SendMessage Given a topic string and en event send it to the client
 func sendMessage(topic string, data string) {
 	// bData, _ := ioutil.ReadFile("/home/ubuntu/testgo/mytemp.json")
-	bData, _ := ioutil.ReadFile("/Users/bandi.kishore/test/Test.json")
+	// bData, _ := ioutil.ReadFile("/Users/bandi.kishore/test/Test.json")
 	// bData, _ := json.Marshal(mydata)
 	// fmt.Print("Enter text: %s",bData)
-	sendByteMessage(topic, bData)
+	// sendByteMessage(topic, bData)
+	log.Printf("Data was : %+v", data)
+	diskData := DiskData{topic, data}
+	log.Printf("Data was : %+v", data)
+	b, err := json.Marshal(&DiskData{topic, data})
+	if err != nil {
+        log.Printf("%s Error occured while Marshaling Disk Data", err)
+        return
+    }
+	log.Printf("Binary Data written was : %+v", b)
+	// q.Enqueue(b)
+	
+	// var diskData DiskData
+	diskData = DiskData{}
+    err = json.Unmarshal(b, &diskData)
+    if err != nil {
+	    	log.Printf("%s Error occured while Unmarshaling diskData", err)
+	    	return;
+    }
+    
+    log.Printf("Data unmarshalled was : %+v", diskData)
 }
 
 // SendMessage Given a topic string and en event send it to the client
-func sendByteMessage(topic string, bData []byte) {
-	q.EnqueueString(topic)
+func sendByteMessage(bData []byte) {
+	// diskData := DiskData{topic, base64.StdEncoding.EncodeToString(bData)}
 	q.Enqueue(bData)
 }
 

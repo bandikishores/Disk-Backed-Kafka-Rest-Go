@@ -61,7 +61,9 @@ func writeToKafka(msg *sarama.ProducerMessage, producer sarama.SyncProducer) err
 		log.Print("Error while pushing to kafka")
 		handleRecoverableError(err, "Error in sending message")
 		handleKafkaMsgOnException(msg);
+		return nil
 	}
+	log.Print("Message sent successfully to Kafka!!")
 	/*select {
 	case producer.Input() <- msg:
 	case err := <-producer.Errors():
@@ -75,7 +77,7 @@ func handleKafkaMsgOnException(msg *sarama.ProducerMessage) {
 		if(err != nil) {
 			log.Printf("Error occured while tring to get message from encode %v", err)
 		} else {
-			sendByteMessage(msg.Topic, b);
+			sendByteMessage(b);
 		}
 }
 
