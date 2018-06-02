@@ -7,15 +7,24 @@ import (
 	"time"
 	"github.com/Shopify/sarama"
 	"encoding/json"
+	"sync"
 	//"gopkg.in/mgo.v2/bson"
 //	"encoding/base64"
 )
 
 var q *goque.Queue
 
+var lock sync.Mutex
+
 const time_in_ms = 1000
 
 const dirQueuePath = "/Users/bandi.kishore/test/diskqueue/"
+
+var queueOfQueues = make([]*goque.Queue, 0)
+
+var sizeSoFar = 0
+
+var maxSize = 50 * 1024 * 1024 // 50 MB per queue
 
 var firstTime = true
 

@@ -38,7 +38,7 @@ func getHealthAPI(w http.ResponseWriter, req *http.Request) {
 // sleepAPI Post Event to the server
 func sleepAPI(w http.ResponseWriter, req *http.Request) {
 	log.Printf("PreSleep : %s", req.Body)
-	time.Sleep(3 * time.Second)
+	time.Sleep(30 * time.Second)
 	log.Printf("PostSleep : %s", req.Body)
 	json.NewEncoder(w).Encode(&Response{StatusCode: 1, Message: "Sleep Successfully"})
 }
