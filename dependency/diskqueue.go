@@ -18,7 +18,11 @@ var lock sync.Mutex
 
 const time_in_ms = 1000
 
+const maxGoRoutines = 10
+
 const dirQueuePath = "/Users/bandi.kishore/test/diskqueue/"
+
+var guard = make(chan struct{}, maxGoRoutines)
 
 var queueOfQueues = make([]*goque.Queue, 0)
 
@@ -60,29 +64,47 @@ func startDeQueue() {
 							}
 							
 							lastReadCount = q.Length()
-							
-							eventBinary, err := q.Dequeue()
-				            if(err != nil) {
-					            log.Printf("%s Error occured while reading topic from file", err)
-					            break;
-				            }
-				            
-							var event Event
-							// var diskData DiskData
-						    err = json.Unmarshal(eventBinary.Value, &event)
-						    if err != nil {
-							    	log.Printf("%s Error occured while Unmarshaling diskData", err)
-							    	continue;
-						    }
+							processMessageFromQueue()
 						    
 						    // log.Printf("Data unmarshalled was : %+v", event)
-				            
-							sendToKafka(event.Header.Name, eventBinary.Value)
 						}
 					}
 				
 		}
 	}
+}
+
+func processMessageFromQueue() {
+	eventBinary, err := q.Dequeue()
+    if(err != nil) {
+        log.Printf("%s Error occured while reading topic from file", err)
+        return
+    }
+
+	processMessageInParallel(eventBinary)
+}
+
+// Function would block few messages until the a goroutine is ready to process.
+// This has a cascading effect of blocking even the main thread which reads from Queue.
+func processMessageInParallel(item *goque.Item) {
+	guard <- struct{}{} 
+    go func(item *goque.Item) {
+        processSingleMessage(item)
+        <-guard
+    }(item)
+}
+
+func processSingleMessage(item *goque.Item) {
+	var event Event
+	err := json.Unmarshal(item.Value, &event)
+	if err != nil {
+		log.Fatalf("%s Error occured while Unmarshaling diskData", err)
+		return
+	}
+	// Kish - TODO : Do Event Validations.
+	// Kish - TODO : Handle basic transformation which Spark does.
+	// Kish - TODO : Send to awz_s3 topic.
+	sendToKafka(event.Header.Name, item.Value)
 }
 
 // SendMessage Given a topic string and en event send it to the client
